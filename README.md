@@ -1,3 +1,4 @@
-# EXOSIGNAL: Exoplanet detection algorithm
+# EXOSIGNAL
+### Exoplanet detection algorithm
 
 See the tutorials for more information.
