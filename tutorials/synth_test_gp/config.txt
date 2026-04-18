@@ -1,0 +1,15 @@
+n_obs = 70
+ndim = 6
+nlive = 1000
+datasets = {'y1': 'rv'}
+instrs: y1: ['SYNTH']
+models: y1: ['ConstModel']
+kernels: y1: ['QPKernel']
+
+Priors:
+y1_qpgp_eta1_1: loguniform(0.01, 10)
+y1_qpgp_eta2_1: per_cond(0.5, 4)
+y1_qpgp_eta3_1: loguniform(1, np.float64(296.65483274163705))
+y1_qpgp_eta4_1: loguniform(0.1, 3)
+y1_mu_SYNTH: uniform(np.float64(-10.377475928215894), np.float64(5.502720421483466))
+y1_jit_SYNTH: loguniform(np.float64(0.03616915349939174), np.float64(15.88019634969936))

@@ -1,0 +1,17 @@
+n_obs = 70
+ndim = 8
+nlive = 500
+datasets = {'y1': 'rv'}
+instrs: y1: ['SYNTH']
+models: y1: ['ConstModel', 'KepModel', 'QuadModel']
+kernels: y1: []
+
+Priors:
+y1_kep_per_1: loguniform(1, np.float64(248.5624281214061))
+y1_kep_k_1: loguniform(0.01, 100)
+y1_kep_ecc_1: beta(0.867, 3.03)
+y1_kep_w_1: uniform(0, 6.283185307179586)
+y1_kep_tc_1: tc_prior()
+y1_quad_a_1: uniform(-0.01, 0.01)
+y1_jit_SYNTH: uniform(0.0, 10)
+y1_mu_SYNTH: uniform(np.float64(-4.176606214070005), np.float64(13.53257485393468))
