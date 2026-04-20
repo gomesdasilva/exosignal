@@ -123,17 +123,18 @@ class ExoSignal:
             params_str = ''
             for j, (dataset_id, mods) in enumerate(self.mean_model_classes_ds.items()):
                 params_str += f"{dataset_id}: "
-                for mod in mods:
-                    for i, name in enumerate(mod.get_model_keys()):
+                for i, mod in enumerate(mods):
+                    for k, name in enumerate(mod.get_model_keys()):
                         if "_mu_" in name:
                             params_str += f"{name}"
-                            if i < len(mod.get_model_names())-1:
+                            #if i < len(mod.get_model_keys())-1:
+                            if i < len(mods)-1 or k < len(mod.get_model_keys())-1:
                                 params_str += ", "
                 for i, keys in enumerate(mods[0].get_model_keys()):
-                    if "_mu_" not in keys:
-                        params_str += f"{keys}"
-                        if i < len(mods[0].get_model_keys())-1:
-                            params_str += ", "
+                        if "_mu_" not in keys:
+                            params_str += f"{keys}"
+                            if i < len(mods[0].get_model_keys())-1:
+                                params_str += ", "
 
                 if j < len(self.mean_model_classes_ds)-1:
                     params_str += "\n\t\t= "
