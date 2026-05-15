@@ -23,28 +23,31 @@ class Periodogram:
     def gls(
             t      : list | np.ndarray,
             y      : list | np.ndarray,
-            y_e    : Optional[list | np.ndarray] = None,
-            pmin   : Optional[float] = 2,
-            pmax   : Optional[int] = None,
-            method : Literal['astropy'] = 'astropy',
+            y_e    : Optional[list | np.ndarray | None] = None,
+            pmin   : Optional[int | float]              = 1.5,
+            pmax   : Optional[int | float | None]       = None,
+            method : Literal['astropy']                 = 'astropy',
+            max_samples : Optional[float | int]         = 50000,
         ) -> dict:
         """Calculates GLS periodogram using several algorithms."""
+
         if method == 'astropy':
-            gls = Periodogram._gls_astropy(t, y, y_e, pmin, pmax)
+            gls = Periodogram._gls_astropy(t, y, y_e, pmin, pmax, max_samples)
 
         return gls
 
 
     @staticmethod
     def _gls_astropy(
-            t     : list | np.ndarray,
-            y     : list | np.ndarray,
-            y_e   : Optional[list | np.ndarray] = None,
-            pmin  : Optional[float] = 1.5,
-            pmax  : Optional[float | int] = None,
-            steps : Optional[int] = None,
+            t           : list | np.ndarray,
+            y           : list | np.ndarray,
+            y_e         : Optional[list | np.ndarray | None] = None,
+            pmin        : Optional[float | int]              = 1.5,
+            pmax        : Optional[float | int | None]       = None,
+            max_samples : Optional[float | int]              = 50000,
         ) -> dict:
         """Calculates GLS periodogram using astropy algorithm."""
+
         t = np.array(t)
         y = np.array(y)
         y_e = np.array(y_e)
@@ -55,7 +58,7 @@ class Periodogram:
             pmax = tspan
 
         cadence = np.diff(np.sort(t))
-        cadence = cadence[cadence != 0.]
+        cadence = cadence[cadence != 0.0]
         cadence_min = cadence.min()
 
         oversampling_factor = 2
@@ -63,23 +66,25 @@ class Periodogram:
 
         steps = pmax/nyquist_p
 
+        if steps > max_samples:
+            steps = max_samples
+
         fmin = 1./pmax
         fmax = 1./pmin
 
         freq = np.linspace(fmin, fmax, int(steps))
         period = 1./freq
 
-        if isinstance(y_e, bool) and y_e is None:
+        if not isinstance(y_e, (list, np.ndarray)) and not y_e:
             gls = LombScargle(t, y)
         else:
             gls = LombScargle(t, y, y_e)
 
         power = gls.power(freq)
 
-        # analytical FAPs using astropy's method, which is based on Baluev 2008
+        # analytical FAP
         faps = gls.false_alarm_probability(power)
 
-        # Different FAP levels can be chosen here
         fap_levels = [0.1, 0.01, 0.001]
         fap10, fap1, fap01 = gls.false_alarm_level(fap_levels)
 
@@ -101,10 +106,9 @@ class Periodogram:
     
 
     @staticmethod
-    def _find_peaks(
-            gls : dict
-        ) -> Tuple[np.ndarray[float]]:
+    def _find_peaks(gls : dict) -> Tuple[np.ndarray[float]]:
         """Retrieve all the peaks in the periodogram."""
+
         peaks, _ = find_peaks(gls['power'])
 
         if len(peaks) == 0:
@@ -135,8 +139,9 @@ class Periodogram:
             ax : matplotlib.axes._axes.Axes
                 matpltolib axes
             faps : (list, optional)
-                List of FAP values in %. Defaults to [10, 0.1].
+                List of FAP values [%]. Defaults to [10, 0.1].
         """
+
         for fap in faps:
             fap_str = str(fap)
 
@@ -150,10 +155,7 @@ class Periodogram:
 
 
     @staticmethod
-    def signifcant_periods(
-            gls       : dict,
-            fap_limit : Optional[int | float] = 10
-        ) -> Tuple[list[float]]:
+    def signifcant_periods(gls: dict, fap_limit: Optional[int | float] = 10) -> Tuple[list[float]]:
         """Retrieve the significant periods in the periodogram.
 
         Parameters:
@@ -161,7 +163,7 @@ class Periodogram:
             gls : dict
                 Dictionary with results from calculating the periodogram.
             fap_limit : (int, float)
-                Minimum FAP below which the GLS peaks are considered ssignificant.
+                Minimum FAP below which the GLS peaks are considered significant [%].
 
         Returns:
         --------
@@ -170,6 +172,7 @@ class Periodogram:
             sign_faps : list
                 List of the FAPs of each significant period.
         """
+
         _, peaks_period, peaks_fap = Periodogram._find_peaks(gls)
 
         fap_limit /= 100 # to fraction
@@ -186,25 +189,21 @@ class Periodogram:
 
     @staticmethod
     def plot(
-            t           : list | np.ndarray,
-            y           : list | np.ndarray,
-            y_e         : Optional[list | np.ndarray] = None,
-            pmin        : Optional[float | int] = 1.5,
-            pmax        : Optional[float | int] = None,
-            ax_in       : Optional[matplotlib.axes._axes.Axes] = None,
-            method      : Literal['astropy'] = 'astropy',
-            title       : Optional[str] = '',
-            period_in   : Optional[float | int] = None,
-            figsize     : Optional[Tuple[int | float]] = (4, 2),
-            label       : Optional[str] = '',
-            maxper_show : Optional[int] = 3,
+            t         : list | np.ndarray,
+            y         : list | np.ndarray,
+            y_e       : Optional[list | np.ndarray | None] = None,
+            pmin      : Optional[float] = 1.5,
+            ax_in     : Optional[matplotlib.axes._axes.Axes] = None,
+            method    : Literal['astropy'] = 'astropy',
+            title     : Optional[str] = '',
+            period_in : Optional[float | int] = None,
+            figsize   : Optional[Tuple[int | float]] = (4, 2),
+            label     : Optional[str] = ''
         ) -> None:
         """Plot periodogram."""
-        if not pmax:
-            pmax = np.ptp(t)
 
         if method=='astropy':
-            gls = Periodogram._gls_astropy(t, y, y_e, pmin=pmin, pmax=pmax)
+            gls = Periodogram._gls_astropy(t, y, y_e, pmin=pmin)
 
         if ax_in is None:
             _, ax = plt.subplots(figsize=figsize, layout='constrained')
@@ -220,9 +219,9 @@ class Periodogram:
 
         Periodogram._mark_fap_lvl(gls, ax, faps=[10, 1, 0.1])
 
-        sign_periods, _ = Periodogram.signifcant_periods(gls)
+        sign_periods, sign_faps = Periodogram.signifcant_periods(gls)
 
-        for i, period in enumerate(sign_periods[:maxper_show]):
+        for i, period in enumerate(sign_periods):
             ax.axvline(period, ls=':', color='b')
             str = rf"$P_{i+1}$ = " + f"{period:.2f} d"
             ax.annotate(str, xy=(0.05, 0.85 - i*0.1), xycoords='axes fraction', fontsize=8)
@@ -242,22 +241,24 @@ class Periodogram:
 # Testing:
 if __name__ == "__main__":
 
-    np.random.seed(123)
+    np.random.seed(0)
     t = np.linspace(900, 1000, 5000)
     t = np.random.choice(t, 100)
     t = np.sort(t)
 
     y0 = np.sin(2*np.pi*t/23.5) + np.sin(2*np.pi*t/40 + 0.3)
 
-    sigma = 0.3
-    noise = sigma * (1 + np.random.normal(0, 0.2, 100))
+    sigma = 0.1
+    noise = sigma * (1 + np.random.normal(0, 0.1, 100))
     y_e = noise
 
-    y = y0 + np.random.normal(0, noise, 100)
+    y = y0 + np.random.normal(0, np.sqrt(noise), 100)
+
+    #gls = Periodogram._gls_astropy(t, y, y_e)
     
     plt.figure()
     plt.errorbar(t, y, y_e, fmt='k.')
     plt.plot(t, y0)
     plt.show()
 
-    Periodogram.plot(t, y, y_e, pmin=1, period_in=30, label=r'H$\alpha$', maxper_show=2)
+    Periodogram.plot(t, y, y_e, pmin=1.5, period_in=30, label=r'H$\alpha$')
